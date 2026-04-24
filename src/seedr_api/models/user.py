@@ -13,9 +13,8 @@ class UserInfo(BaseModel):
     id: int | None = None
     username: str | None = None
     email: str | None = None
-    first_name: str | None = None
-    last_name: str | None = None
-    package_name: str | None = None
+    created_at: int | None = None
+    last_login: int | None = None
 
 
 class Quota(BaseModel):
@@ -25,6 +24,8 @@ class Quota(BaseModel):
     space_used: int | None = None
     bandwidth_max: int | None = None
     bandwidth_used: int | None = None
+    space_scope: str | None = None
+    is_premium: bool | None = None
 
 
 class UserSettings(BaseModel):

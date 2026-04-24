@@ -21,6 +21,8 @@ class DownloadsResource(BaseResource):
     ) -> AsyncGenerator[AsyncGenerator[bytes, None], None]:
         """Stream a file as an async generator of byte chunks.
 
+        Required scope: ``files.read``
+
         This context manager keeps the connection open while you consume
         the data, making it memory-efficient for large files.
 
@@ -53,6 +55,8 @@ class DownloadsResource(BaseResource):
     async def get_file_bytes(self, file_id: int) -> bytes:
         """Download an entire file into memory as bytes.
 
+        Required scope: ``files.read``
+
         .. warning::
             Avoid for large files; prefer :meth:`stream_file`.
 
@@ -71,6 +75,8 @@ class DownloadsResource(BaseResource):
     async def get_download_url(self, file_id: int) -> str:
         """Retrieve a temporary direct download URL for a file.
 
+        Required scope: ``files.read``
+
         Parameters
         ----------
         file_id:
@@ -87,6 +93,8 @@ class DownloadsResource(BaseResource):
 
     async def get_archive_bytes(self, uniq: str) -> bytes:
         """Download a ZIP archive by its unique identifier.
+
+        Required scope: ``archives.manage``
 
         Parameters
         ----------

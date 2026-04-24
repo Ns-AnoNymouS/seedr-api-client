@@ -12,8 +12,7 @@ from seedr_api.exceptions import (
     RateLimitError,
     ServerError,
 )
-
-OAUTH_BASE = "https://www.seedr.cc/api/v0.1"
+from tests.conftest import API_BASE
 
 
 @pytest.mark.parametrize(
@@ -27,27 +26,23 @@ OAUTH_BASE = "https://www.seedr.cc/api/v0.1"
         (422, APIError),
     ],
 )
-@pytest.mark.asyncio
 async def test_http_error_mapping(
     mock_aioresponses: aioresponses,
     token_client: SeedrClient,
     status: int,
     exc_type: type,
 ) -> None:
-    """Each HTTP status code should raise the correct exception type."""
-    mock_aioresponses.get(f"{OAUTH_BASE}/user", status=status, payload={"error": "err"})
+    mock_aioresponses.get(f"{API_BASE}/user", status=status, payload={"error": "err"})
     async with token_client:
         with pytest.raises(exc_type):
             await token_client.user.get()
 
 
-@pytest.mark.asyncio
 async def test_rate_limit_has_retry_after(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
-    """RateLimitError should expose the Retry-After header value."""
     mock_aioresponses.get(
-        f"{OAUTH_BASE}/user",
+        f"{API_BASE}/user",
         status=429,
         headers={"Retry-After": "30"},
         payload={"error": "Too many requests"},

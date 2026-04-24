@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -12,18 +14,31 @@ class FileInfo(BaseModel):
     name: str
     size: int
     hash: str | None = None
-    play_video: bool | None = None
-    play_audio: bool | None = None
-    created_time: str | None = None
+    folder_id: int | None = None
+    folder_path: str | None = None
+    last_update: str | None = None
+    is_video: bool | None = None
+    is_audio: bool | None = None
+    is_image: bool | None = None
+    is_document: bool | None = None
+    thumb: str | None = None
+    presentation_urls: dict[str, Any] | None = None
+    video_progress: str | None = None
+    is_available: bool | None = None
 
 
 class FolderInfo(BaseModel):
-    """Metadata for a folder stored in Seedr."""
+    """Metadata for a folder stored in Seedr.
+
+    The API returns the folder name in the ``path`` field.
+    """
 
     id: int
-    name: str
+    path: str | None = None
     size: int | None = None
-    created_time: str | None = None
+    parent: int | None = None
+    last_update: str | None = None
+    timestamp: str | None = None
 
 
 class TorrentTaskInfo(BaseModel):
@@ -39,11 +54,13 @@ class FolderContents(BaseModel):
     """Contents of a Seedr folder (subfolders, files, active torrents)."""
 
     id: int | None = None
-    name: str | None = None
+    path: str | None = None
     size: int | None = None
+    parent: int | None = None
     folders: list[FolderInfo] = Field(default_factory=list)
     files: list[FileInfo] = Field(default_factory=list)
     torrents: list[TorrentTaskInfo] = Field(default_factory=list)
+    tasks: list[Any] = Field(default_factory=list)
 
 
 class BatchResult(BaseModel):

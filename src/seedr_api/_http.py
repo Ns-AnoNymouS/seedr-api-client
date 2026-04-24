@@ -89,6 +89,8 @@ class AsyncHTTPClient:
         return headers
 
     def _url(self, path: str) -> str:
+        if path.startswith(("http://", "https://")):
+            return path
         return f"{self._base_url}/{path.lstrip('/')}"
 
     @staticmethod
@@ -165,12 +167,19 @@ class AsyncHTTPClient:
                 return {}
             return await resp.json(content_type=None)
 
-    async def delete(self, path: str, *, params: dict[str, Any] | None = None) -> Any:
+    async def delete(
+        self,
+        path: str,
+        *,
+        data: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> Any:
         """Perform a DELETE request and return the parsed JSON body."""
         session = self._get_session()
         async with session.delete(
             self._url(path),
             headers=self._build_headers(),
+            data=data,
             params=params,
         ) as resp:
             await self._raise_for_status(resp)

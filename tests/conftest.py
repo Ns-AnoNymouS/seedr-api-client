@@ -7,8 +7,9 @@ from aioresponses import aioresponses
 
 from seedr_api.client import SeedrClient
 
-OAUTH_BASE = "https://www.seedr.cc/api/v0.1"
-PASSWORD_BASE = "https://www.seedr.cc/api/v0.1/p"
+API_BASE = "https://v2.seedr.cc/api/v0.1/p"
+DEVICE_CODE_URL = "https://v2.seedr.cc/api/v0.1/p/oauth/device/code"
+DEVICE_TOKEN_URL = "https://v2.seedr.cc/api/v0.1/p/oauth/device/token"
 
 
 @pytest.fixture()

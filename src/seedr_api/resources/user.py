@@ -14,16 +14,21 @@ class UserResource(BaseResource):
     async def get(self) -> UserInfo:
         """Return the authenticated user's profile.
 
+        Required scope: ``profile``
+
         Returns
         -------
         UserInfo
-            User profile data (id, email, username, plan, etc.).
+            User profile data (id, email, username, etc.).
         """
         data: Any = await self._http.get("/user")
-        return UserInfo.model_validate(data)
+        profile = data.get("profile", data) if isinstance(data, dict) else data
+        return UserInfo.model_validate(profile)
 
     async def get_quota(self) -> Quota:
         """Return storage and bandwidth quota information.
+
+        Required scope: ``account.read``
 
         Returns
         -------
@@ -35,6 +40,8 @@ class UserResource(BaseResource):
 
     async def get_settings(self) -> UserSettings:
         """Return application-specific user settings.
+
+        Required scope: ``settings.read``
 
         Returns
         -------

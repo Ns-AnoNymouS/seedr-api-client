@@ -8,10 +8,16 @@ from pydantic import BaseModel, Field
 class OAuthApp(BaseModel):
     """Represents a public OAuth application registered with Seedr."""
 
-    id: int
+    client_id: str
     name: str
     description: str | None = None
-    website: str | None = None
+    homepage_url: str | None = None
+    logo_url: str | None = None
+    category: str | None = None
+    developer_name: str | None = None
+    developer_email: str | None = None
+    privacy_policy_url: str | None = None
+    terms_url: str | None = None
 
 
 class DeviceCode(BaseModel):
@@ -25,13 +31,14 @@ class DeviceCode(BaseModel):
 
 
 class TokenResponse(BaseModel):
-    """OAuth token response (both authorization code and device flows)."""
+    """OAuth token response (authorization code, device, and client-credentials flows)."""
 
     access_token: str
     token_type: str = "Bearer"
     expires_in: int | None = None
     refresh_token: str | None = None
     scope: str | None = None
+    user_id: str | None = None
 
 
 class PKCEChallenge(BaseModel):

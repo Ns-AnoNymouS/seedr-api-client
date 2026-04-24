@@ -14,6 +14,8 @@ class SearchResource(BaseResource):
     async def search(self, query: str) -> list[FileInfo | FolderInfo]:
         """Search files and folders within the authenticated user's Seedr account.
 
+        Required scope: ``files.read``
+
         Parameters
         ----------
         query:
@@ -22,20 +24,22 @@ class SearchResource(BaseResource):
         Returns
         -------
         list[FileInfo | FolderInfo]
-            Matching files and folders.
+            Matching files and folders (folders first, then files).
         """
         data: Any = await self._http.get("/search/fs", params={"q": query})
-        results: list[Any] = data if isinstance(data, list) else data.get("results", [])
+        if isinstance(data, list):
+            return []
         items: list[FileInfo | FolderInfo] = []
-        for item in results:
-            if "files" in item or item.get("type") == "folder":
-                items.append(FolderInfo.model_validate(item))
-            else:
-                items.append(FileInfo.model_validate(item))
+        for folder in data.get("folders", []):
+            items.append(FolderInfo.model_validate(folder))
+        for file_ in data.get("files", []):
+            items.append(FileInfo.model_validate(file_))
         return items
 
     async def scrape_torrents(self, url: str) -> list[str]:
         """Scrape a webpage for torrent files or magnet links.
+
+        Required scope: ``files.read``
 
         Parameters
         ----------

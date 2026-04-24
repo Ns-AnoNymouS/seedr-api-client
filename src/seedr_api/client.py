@@ -26,11 +26,8 @@ from seedr_api.resources.subtitles import SubtitlesResource
 from seedr_api.resources.tasks import TasksResource
 from seedr_api.resources.user import UserResource
 
-#: OAuth base URL (used with bearer tokens)
-_OAUTH_BASE = "https://www.seedr.cc/api/v0.1"
-
-#: Password-auth base URL (used with HTTP Basic Auth)
-_PASSWORD_BASE = "https://www.seedr.cc/api/v0.1/p"
+#: API base URL for both Bearer token and Basic Auth
+_API_BASE = "https://v2.seedr.cc/api/v0.1/p"
 
 
 class SeedrClient:
@@ -84,7 +81,7 @@ class SeedrClient:
             Configured client instance.
         """
         http = AsyncHTTPClient(
-            _OAUTH_BASE,
+            _API_BASE,
             access_token=access_token,
             timeout=aiohttp.ClientTimeout(total=timeout),
         )
@@ -115,7 +112,7 @@ class SeedrClient:
             Configured client instance.
         """
         http = AsyncHTTPClient(
-            _PASSWORD_BASE,
+            _API_BASE,
             basic_auth=(email, password),
             timeout=aiohttp.ClientTimeout(total=timeout),
         )
@@ -153,7 +150,7 @@ class SeedrClient:
         """
         # Create a temporary unauthenticated client to fetch the token
         http = AsyncHTTPClient(
-            _OAUTH_BASE,
+            _API_BASE,
             timeout=aiohttp.ClientTimeout(total=timeout),
         )
         temp_client = cls(http)

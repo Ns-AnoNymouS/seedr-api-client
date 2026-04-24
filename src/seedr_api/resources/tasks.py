@@ -18,6 +18,8 @@ class TasksResource(BaseResource):
     async def list(self) -> list[Task]:
         """Return all active torrent tasks.
 
+        Required scope: ``tasks.read``
+
         Returns
         -------
         list[Task]
@@ -30,6 +32,8 @@ class TasksResource(BaseResource):
     async def get(self, task_id: int) -> Task:
         """Return details for a single task.
 
+        Required scope: ``tasks.read``
+
         Parameters
         ----------
         task_id:
@@ -41,10 +45,13 @@ class TasksResource(BaseResource):
             Task details and progress.
         """
         data: Any = await self._http.get(f"/tasks/{task_id}")
-        return Task.model_validate(data)
+        task = data.get("task", data) if isinstance(data, dict) else data
+        return Task.model_validate(task)
 
     async def add_magnet(self, magnet: str, folder_id: int | None = None) -> Task:
         """Add a new task from a magnet link.
+
+        Required scope: ``tasks.write``
 
         Parameters
         ----------
@@ -66,6 +73,8 @@ class TasksResource(BaseResource):
 
     async def add_url(self, url: str, folder_id: int | None = None) -> Task:
         """Add a new task from a direct URL to a torrent.
+
+        Required scope: ``tasks.write``
 
         Parameters
         ----------
@@ -91,6 +100,8 @@ class TasksResource(BaseResource):
         folder_id: int | None = None,
     ) -> Task:
         """Add a new task by uploading a local ``.torrent`` file.
+
+        Required scope: ``tasks.write``
 
         Parameters
         ----------
@@ -121,6 +132,8 @@ class TasksResource(BaseResource):
     async def pause(self, task_id: int) -> None:
         """Pause an active task.
 
+        Required scope: ``tasks.write``
+
         Parameters
         ----------
         task_id:
@@ -131,6 +144,8 @@ class TasksResource(BaseResource):
     async def resume(self, task_id: int) -> None:
         """Resume a paused task.
 
+        Required scope: ``tasks.write``
+
         Parameters
         ----------
         task_id:
@@ -140,6 +155,8 @@ class TasksResource(BaseResource):
 
     async def delete(self, task_id: int) -> None:
         """Delete a task (does **not** delete downloaded files).
+
+        Required scope: ``tasks.write``
 
         Parameters
         ----------

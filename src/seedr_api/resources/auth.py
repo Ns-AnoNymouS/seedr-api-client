@@ -9,7 +9,11 @@ import secrets
 from typing import Any
 from urllib.parse import urlencode
 
-from seedr_api.exceptions import APIError
+from seedr_api.exceptions import APIError, RateLimitError
+
+_SEEDR_HOST = "https://v2.seedr.cc"
+_DEVICE_CODE_URL = f"{_SEEDR_HOST}/api/v0.1/p/oauth/device/code"
+_DEVICE_TOKEN_URL = f"{_SEEDR_HOST}/api/v0.1/p/oauth/device/token"
 from seedr_api.models.auth import (
     AuthorizationURL,
     DeviceCode,
@@ -29,6 +33,8 @@ class AuthResource(BaseResource):
 
     async def get_apps(self) -> list[OAuthApp]:
         """Return a list of public OAuth applications registered with Seedr.
+
+        Required scope: none (public endpoint)
 
         Returns
         -------
@@ -152,6 +158,23 @@ class AuthResource(BaseResource):
         url = f"{base_authorize_url}?{urlencode(params)}"
         return AuthorizationURL(url=url, pkce=pkce)
 
+    async def revoke_token(self, *, token: str, client_id: str | None = None) -> None:
+        """Revoke an access or refresh token.
+
+        Required scope: none (uses the token being revoked)
+
+        Parameters
+        ----------
+        token:
+            The token to revoke.
+        client_id:
+            OAuth client ID. Required by the Seedr revocation endpoint.
+        """
+        data: dict[str, str] = {"token": token}
+        if client_id is not None:
+            data["client_id"] = client_id
+        await self._http.post("/oauth/token/revoke_rfc7009", data=data)
+
     async def exchange_code(
         self,
         *,
@@ -267,7 +290,12 @@ class AuthResource(BaseResource):
         )
         return TokenResponse.model_validate(data)
 
-    async def request_device_code(self, *, client_id: str) -> DeviceCode:
+    async def request_device_code(
+        self,
+        *,
+        client_id: str,
+        scope: str = "profile account.read account.write settings.read settings.write files.read files.write tasks.read tasks.write archives.manage media.read subtitles.read subtitles.write",
+    ) -> DeviceCode:
         """Initiate the device authorization flow.
 
         Display ``device_code.verification_uri`` and ``device_code.user_code``
@@ -284,10 +312,15 @@ class AuthResource(BaseResource):
             Verification URI, user code, and polling details.
         """
         data: Any = await self._http.post(
-            "/oauth/device/code",
-            data={"client_id": client_id},
+            _DEVICE_CODE_URL,
+            data={"client_id": client_id, "scope": scope},
         )
-        return DeviceCode.model_validate(data)
+        device = DeviceCode.model_validate(data)
+        if device.verification_uri.startswith("/"):
+            device = device.model_copy(
+                update={"verification_uri": f"{_SEEDR_HOST}{device.verification_uri}"}
+            )
+        return device
 
     async def poll_device_token(
         self,
@@ -329,7 +362,7 @@ class AuthResource(BaseResource):
             elapsed += interval
             try:
                 data: Any = await self._http.post(
-                    "/oauth/device/token",
+                    _DEVICE_TOKEN_URL,
                     data={
                         "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
                         "client_id": client_id,
@@ -337,6 +370,9 @@ class AuthResource(BaseResource):
                     },
                 )
                 return TokenResponse.model_validate(data)
+            except RateLimitError:
+                interval += 5
+                continue
             except APIError as exc:
                 err = exc.message.lower()
                 if "authorization_pending" in err or "slow_down" in err:
@@ -346,15 +382,3 @@ class AuthResource(BaseResource):
                 raise
         raise TimeoutError("Device authorization timed out.")
 
-    async def revoke_token(self, *, token: str) -> None:
-        """Revoke an access or refresh token.
-
-        Parameters
-        ----------
-        token:
-            The token to revoke.
-        """
-        await self._http.post(
-            "/oauth/token/revoke_rfc7009",
-            data={"token": token},
-        )

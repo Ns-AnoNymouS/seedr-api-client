@@ -111,7 +111,8 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --ignore=tests/integration"
+markers = ["integration: mark test as hitting the real Seedr API"]
 
 # ---------------------------------------------------------------------------
 # coverage

@@ -18,6 +18,8 @@ class SubtitlesResource(BaseResource):
     async def list_subtitles(self, file_id: int) -> list[SubtitleInfo]:
         """List all available subtitles for a file.
 
+        Required scope: ``subtitles.read``
+
         Parameters
         ----------
         file_id:
@@ -36,6 +38,8 @@ class SubtitlesResource(BaseResource):
 
     async def upload(self, file_id: int, subtitle_path: str | Path) -> SubtitleInfo:
         """Upload a subtitle file and associate it with a Seedr file.
+
+        Required scope: ``subtitles.write``
 
         Parameters
         ----------
@@ -70,6 +74,8 @@ class SubtitlesResource(BaseResource):
     ) -> list[SubtitleSearchResult]:
         """Search for subtitles on OpenSubtitles.
 
+        Required scope: ``subtitles.read``
+
         Parameters
         ----------
         query:
@@ -86,15 +92,19 @@ class SubtitlesResource(BaseResource):
         """
         payload: dict[str, Any] = {}
         if query is not None:
-            payload["query"] = query
+            payload["q"] = query
         if imdb_id is not None:
-            payload["imdb_id"] = imdb_id
+            # API expects numeric IMDB ID (strip leading "tt" if present)
+            payload["imdb_id"] = imdb_id[2:] if imdb_id.startswith("tt") else imdb_id
         if language is not None:
             payload["language"] = language
         data: Any = await self._http.post("/subtitles/v2/search", data=payload)
-        results: list[Any] = (
-            data if isinstance(data, list) else data.get("subtitles", [])
-        )
+        if isinstance(data, list):
+            results: list[Any] = data
+        elif isinstance(data, dict):
+            results = data.get("by_query", []) + data.get("by_hash", [])
+        else:
+            results = []
         return [SubtitleSearchResult.model_validate(r) for r in results]
 
     async def link_opensubtitles(
@@ -103,6 +113,8 @@ class SubtitlesResource(BaseResource):
         subtitle_id: str,
     ) -> SubtitleInfo:
         """Link an OpenSubtitles subtitle to a file in your Seedr library.
+
+        Required scope: ``subtitles.write``
 
         Parameters
         ----------

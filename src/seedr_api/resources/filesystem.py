@@ -23,6 +23,8 @@ class FilesystemResource(BaseResource):
     async def get_root(self) -> FolderInfo:
         """Return metadata for the root folder.
 
+        Required scope: ``files.read``
+
         Returns
         -------
         FolderInfo
@@ -33,6 +35,8 @@ class FilesystemResource(BaseResource):
 
     async def list_root_contents(self) -> FolderContents:
         """List all contents (subfolders, files, active torrents) of the root folder.
+
+        Required scope: ``files.read``
 
         Returns
         -------
@@ -49,6 +53,8 @@ class FilesystemResource(BaseResource):
     async def get_folder(self, folder_id: int) -> FolderInfo:
         """Return metadata for a specific folder.
 
+        Required scope: ``files.read``
+
         Parameters
         ----------
         folder_id:
@@ -64,6 +70,8 @@ class FilesystemResource(BaseResource):
 
     async def list_folder_contents(self, folder_id: int) -> FolderContents:
         """List all contents of a specific folder.
+
+        Required scope: ``files.read``
 
         Parameters
         ----------
@@ -82,6 +90,8 @@ class FilesystemResource(BaseResource):
         self, name: str, parent_id: int | None = None
     ) -> FolderInfo:
         """Create a new folder.
+
+        Required scope: ``files.write``
 
         Parameters
         ----------
@@ -104,12 +114,17 @@ class FilesystemResource(BaseResource):
     async def delete_folder(self, folder_id: int) -> None:
         """Delete a folder and all its contents.
 
+        Required scope: ``files.write``
+
         Parameters
         ----------
         folder_id:
             The numeric ID of the folder to delete.
         """
-        await self._http.delete(f"/fs/folder/{folder_id}")
+        await self._http.delete(
+            f"/fs/folder/{folder_id}",
+            data={"delete_arr": f"[{folder_id}]"},
+        )
 
     # ------------------------------------------------------------------
     # File operations
@@ -117,6 +132,8 @@ class FilesystemResource(BaseResource):
 
     async def get_file(self, file_id: int) -> FileInfo:
         """Return metadata for a specific file.
+
+        Required scope: ``files.read``
 
         Parameters
         ----------
@@ -134,12 +151,17 @@ class FilesystemResource(BaseResource):
     async def delete_file(self, file_id: int) -> None:
         """Delete a specific file.
 
+        Required scope: ``files.write``
+
         Parameters
         ----------
         file_id:
             The numeric ID of the file to delete.
         """
-        await self._http.delete(f"/fs/file/{file_id}")
+        await self._http.delete(
+            f"/fs/file/{file_id}",
+            data={"delete_arr": f"[{file_id}]"},
+        )
 
     # ------------------------------------------------------------------
     # Path lookup
@@ -147,6 +169,8 @@ class FilesystemResource(BaseResource):
 
     async def get_by_path(self, path: str) -> FolderInfo | FileInfo:
         """Retrieve a file or folder by its absolute path within Seedr.
+
+        Required scope: ``files.read``
 
         Parameters
         ----------
@@ -159,9 +183,9 @@ class FilesystemResource(BaseResource):
             The located resource.
         """
         data: Any = await self._http.get("/fs/path", params={"path": path})
-        if data.get("files") is not None or data.get("folders") is not None:
-            return FolderInfo.model_validate(data)
-        return FileInfo.model_validate(data)
+        if "name" in data and "folders" not in data:
+            return FileInfo.model_validate(data)
+        return FolderInfo.model_validate(data)
 
     # ------------------------------------------------------------------
     # Batch operations
@@ -173,6 +197,8 @@ class FilesystemResource(BaseResource):
         destination_folder_id: int,
     ) -> BatchResult:
         """Copy multiple files/folders to a destination folder.
+
+        Required scope: ``files.write``
 
         Parameters
         ----------
@@ -199,6 +225,8 @@ class FilesystemResource(BaseResource):
     ) -> BatchResult:
         """Move multiple files/folders to a destination folder.
 
+        Required scope: ``files.write``
+
         Parameters
         ----------
         item_ids:
@@ -219,6 +247,8 @@ class FilesystemResource(BaseResource):
 
     async def batch_delete(self, item_ids: list[int]) -> BatchResult:
         """Delete multiple files, folders, or torrent tasks.
+
+        Required scope: ``files.write``
 
         Parameters
         ----------

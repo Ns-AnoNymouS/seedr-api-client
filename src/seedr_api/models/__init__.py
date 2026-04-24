@@ -10,7 +10,12 @@ from seedr_api.models.filesystem import (
     FolderInfo,
     TorrentTaskInfo,
 )
-from seedr_api.models.media import PresentationURL, SubtitleInfo, SubtitleSearchResult
+from seedr_api.models.media import (
+    FilePresentations,
+    FolderPresentations,
+    SubtitleInfo,
+    SubtitleSearchResult,
+)
 from seedr_api.models.tasks import Task
 from seedr_api.models.user import Quota, UserInfo, UserSettings
 
@@ -21,7 +26,8 @@ __all__ = [
     "FolderContents",
     "FolderInfo",
     "OAuthApp",
-    "PresentationURL",
+    "FilePresentations",
+    "FolderPresentations",
     "Quota",
     "SubtitleInfo",
     "SubtitleSearchResult",
