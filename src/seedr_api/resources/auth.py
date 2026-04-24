@@ -10,10 +10,6 @@ from typing import Any
 from urllib.parse import urlencode
 
 from seedr_api.exceptions import APIError, RateLimitError
-
-_SEEDR_HOST = "https://v2.seedr.cc"
-_DEVICE_CODE_URL = f"{_SEEDR_HOST}/api/v0.1/p/oauth/device/code"
-_DEVICE_TOKEN_URL = f"{_SEEDR_HOST}/api/v0.1/p/oauth/device/token"
 from seedr_api.models.auth import (
     AuthorizationURL,
     DeviceCode,
@@ -22,6 +18,10 @@ from seedr_api.models.auth import (
     TokenResponse,
 )
 from seedr_api.resources._base import BaseResource
+
+_SEEDR_HOST = "https://v2.seedr.cc"
+_DEVICE_CODE_URL = f"{_SEEDR_HOST}/api/v0.1/p/oauth/device/code"
+_DEVICE_TOKEN_URL = f"{_SEEDR_HOST}/api/v0.1/p/oauth/device/token"
 
 
 class AuthResource(BaseResource):

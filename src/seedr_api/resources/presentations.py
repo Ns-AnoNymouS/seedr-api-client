@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from seedr_api.models.media import FilePresentations, FolderPresentations
+from seedr_api.models.media import FolderPresentations
 from seedr_api.resources._base import BaseResource
 
 

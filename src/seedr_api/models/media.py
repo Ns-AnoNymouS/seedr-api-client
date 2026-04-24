@@ -30,7 +30,7 @@ class FolderPresentations(BaseModel):
     total_files: int = 0
 
     @model_validator(mode="after")
-    def _derive_total_files(self) -> "FolderPresentations":
+    def _derive_total_files(self) -> FolderPresentations:
         if self.total_files == 0 and self.files:
             self.total_files = len(self.files)
         return self

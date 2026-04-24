@@ -5,7 +5,6 @@ from aioresponses import aioresponses
 from seedr_api.client import SeedrClient
 from tests.conftest import API_BASE
 
-
 # ---------------------------------------------------------------------------
 # SubtitlesResource
 # ---------------------------------------------------------------------------

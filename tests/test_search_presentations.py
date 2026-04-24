@@ -8,7 +8,6 @@ from seedr_api.client import SeedrClient
 from seedr_api.models.filesystem import FolderInfo
 from tests.conftest import API_BASE
 
-
 # ---------------------------------------------------------------------------
 # SearchResource
 # ---------------------------------------------------------------------------
