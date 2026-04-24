@@ -4,14 +4,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Task(BaseModel):
     """Represents a torrent download task in Seedr."""
 
-    id: int
-    name: str
+    model_config = ConfigDict(populate_by_name=True)
+
+    # Seedr returns user_torrent_id / title in the add-magnet response
+    id: int = Field(alias="user_torrent_id")
+    name: str = Field(alias="title")
+    success: bool | None = None
+    torrent_hash: str | None = None
     state: str | None = None
     progress: float | None = None
     size: int | None = None
