@@ -2,16 +2,15 @@
 
 Handles:
 - Session lifecycle (creation, teardown)
-- BasicAuth and Bearer token injection
+- Bearer token injection
 - Centralised HTTP error → exception mapping
-- Automatic one-shot token refresh on 401 (when on_unauthorized is provided)
 - JSON and binary (streaming) response helpers
 """
 
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator, Awaitable, Callable
+from collections.abc import AsyncGenerator
 from typing import Any
 
 import aiohttp
@@ -20,6 +19,7 @@ from seedr_api.exceptions import (
     APIError,
     AuthenticationError,
     ForbiddenError,
+    InsufficientSpaceError,
     NotFoundError,
     RateLimitError,
     ServerError,
@@ -36,16 +36,9 @@ class AsyncHTTPClient:
     base_url:
         API base URL (no trailing slash).
     access_token:
-        OAuth 2.0 bearer token. Takes precedence over *basic_auth*.
-    basic_auth:
-        ``(email, password)`` tuple for HTTP Basic Auth.
+        OAuth 2.0 bearer token.
     timeout:
         Request timeout. Defaults to 60 seconds.
-    on_unauthorized:
-        Async callable invoked on a 401 response. It should refresh the token
-        and return the new access token as a string. The request is then
-        retried once with the updated token. If omitted, 401 raises
-        :class:`~seedr_api.exceptions.AuthenticationError` immediately.
     """
 
     def __init__(
@@ -53,16 +46,12 @@ class AsyncHTTPClient:
         base_url: str,
         *,
         access_token: str | None = None,
-        basic_auth: tuple[str, str] | None = None,
         timeout: aiohttp.ClientTimeout = _DEFAULT_TIMEOUT,
-        on_unauthorized: Callable[[], Awaitable[str]] | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._access_token = access_token
-        self._basic_auth = basic_auth
         self._timeout = timeout
         self._session: aiohttp.ClientSession | None = None
-        self._on_unauthorized = on_unauthorized
 
     # ------------------------------------------------------------------
     # Session lifecycle
@@ -70,13 +59,7 @@ class AsyncHTTPClient:
 
     def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
-            auth: aiohttp.BasicAuth | None = None
-            if self._basic_auth is not None:
-                auth = aiohttp.BasicAuth(*self._basic_auth)
-            self._session = aiohttp.ClientSession(
-                timeout=self._timeout,
-                auth=auth,
-            )
+            self._session = aiohttp.ClientSession(timeout=self._timeout)
         return self._session
 
     async def close(self) -> None:
@@ -108,10 +91,11 @@ class AsyncHTTPClient:
 
         try:
             body: dict[str, Any] = await response.json(content_type=None)
-            message: str = body.get(
-                "error", body.get("message", response.reason or "Unknown error")
+            message: str = str(
+                body.get("error", body.get("reason_phrase", body.get("message", response.reason or "Unknown error")))
             )
         except (ValueError, aiohttp.ContentTypeError):
+            body = {}
             message = response.reason or "Unknown error"
 
         status = response.status
@@ -122,6 +106,9 @@ class AsyncHTTPClient:
             raise ForbiddenError(message, status_code=status)
         if status == 404:
             raise NotFoundError(message, status_code=status)
+        if status == 413:
+            wt = body.get("wt") if isinstance(body, dict) else None
+            raise InsufficientSpaceError(message, status_code=status, wishlist_item=wt)
         if status == 429:
             retry_after: int | None = None
             ra = response.headers.get("Retry-After")
@@ -136,23 +123,18 @@ class AsyncHTTPClient:
         raise APIError(message, status_code=status)
 
     async def _request(self, method: str, path: str, **session_kwargs: Any) -> Any:
-        """Execute an HTTP request, retrying once after a token refresh on 401."""
+        """Execute an HTTP request and return parsed JSON."""
         session = self._get_session()
-        for attempt in range(2):
-            async with session.request(
-                method,
-                self._url(path),
-                headers=self._build_headers(),
-                **session_kwargs,
-            ) as resp:
-                if resp.status == 401 and attempt == 0 and self._on_unauthorized is not None:
-                    new_token = await self._on_unauthorized()
-                    self._access_token = new_token
-                    continue
-                await self._raise_for_status(resp)
-                if resp.status == 204:
-                    return {}
-                return await resp.json(content_type=None)
+        async with session.request(
+            method,
+            self._url(path),
+            headers=self._build_headers(),
+            **session_kwargs,
+        ) as resp:
+            await self._raise_for_status(resp)
+            if resp.status == 204:
+                return {}
+            return await resp.json(content_type=None)
 
     # ------------------------------------------------------------------
     # Public request methods

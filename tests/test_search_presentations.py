@@ -1,11 +1,12 @@
 """Tests for SearchResource and PresentationsResource."""
 
+from __future__ import annotations
+
 import re
 
 from aioresponses import aioresponses
 
 from seedr_api.client import SeedrClient
-from seedr_api.models.filesystem import FolderInfo
 from tests.conftest import API_BASE
 
 # ---------------------------------------------------------------------------
@@ -18,12 +19,17 @@ async def test_search_returns_file_results(
 ) -> None:
     mock_aioresponses.get(
         re.compile(r".*/search/fs"),
-        payload={"folders": [], "files": [{"id": 1, "name": "movie.mkv", "size": 1000}]},
+        payload={
+            "folders": [],
+            "files": [{"id": 1, "name": "movie.mkv", "size": 1000, "hash": "abc"}],
+        },
     )
     async with token_client:
-        items = await token_client.search.search("movie")
-    assert len(items) == 1
-    assert items[0].name == "movie.mkv"  # type: ignore[union-attr]
+        result = await token_client.search.search("movie")
+    # V2 adapter returns raw dict
+    assert isinstance(result, dict)
+    assert len(result.get("files", [])) == 1
+    assert result["files"][0]["name"] == "movie.mkv"
 
 
 async def test_search_empty(
@@ -34,51 +40,30 @@ async def test_search_empty(
         payload={"folders": [], "files": [], "torrents": []},
     )
     async with token_client:
-        items = await token_client.search.search("nothing")
-    assert items == []
+        result = await token_client.search.search("nothing")
+    assert result.get("files") == []
+    assert result.get("folders") == []
 
 
-async def test_search_folder_item(
+async def test_search_with_folders(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
     mock_aioresponses.get(
         re.compile(r".*/search/fs"),
-        payload={"folders": [{"id": 5, "path": "TV Shows", "size": 0}], "files": []},
+        payload={
+            "folders": [{"id": 5, "path": "TV Shows", "size": 0, "last_update": "2024-01-01"}],
+            "files": [],
+        },
     )
     async with token_client:
-        items = await token_client.search.search("TV")
-    assert isinstance(items[0], FolderInfo)
-
-
-async def test_scrape_torrents(
-    mock_aioresponses: aioresponses, token_client: SeedrClient
-) -> None:
-    mock_aioresponses.post(
-        f"{API_BASE}/scrape/html/torrents",
-        payload={"results": ["magnet:?xt=urn:btih:abc123"]},
-    )
-    async with token_client:
-        links = await token_client.search.scrape_torrents("https://example.com/page")
-    assert len(links) == 1
-    assert links[0].startswith("magnet:")
+        result = await token_client.search.search("TV")
+    assert len(result.get("folders", [])) == 1
+    assert result["folders"][0]["path"] == "TV Shows"
 
 
 # ---------------------------------------------------------------------------
 # PresentationsResource
 # ---------------------------------------------------------------------------
-
-
-async def test_get_file_presentation(
-    mock_aioresponses: aioresponses, token_client: SeedrClient
-) -> None:
-    mock_aioresponses.get(
-        f"{API_BASE}/presentations/file/10/thumbnail",
-        payload={"48": "https://cdn.seedr.cc/thumb/48.jpg", "220": "https://cdn.seedr.cc/thumb/220.jpg"},
-    )
-    async with token_client:
-        urls = await token_client.presentations.get_file_presentation(10, "thumbnail")
-    assert "48" in urls
-    assert urls["48"].startswith("https://")
 
 
 async def test_get_folder_presentations(
@@ -87,6 +72,7 @@ async def test_get_folder_presentations(
     mock_aioresponses.get(
         f"{API_BASE}/presentations/folder/2",
         payload={
+            "folder": {"id": 2, "name": "Movies", "path": "/Movies"},
             "files": [
                 {
                     "file_id": 10,
@@ -111,7 +97,7 @@ async def test_get_folder_presentations_empty(
 ) -> None:
     mock_aioresponses.get(
         f"{API_BASE}/presentations/folder/99",
-        payload={"files": [], "total_files": 0},
+        payload={"folder": {"id": 99, "name": "Empty"}, "files": [], "total_files": 0},
     )
     async with token_client:
         fp = await token_client.presentations.get_folder_presentations(99)

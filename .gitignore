@@ -27,3 +27,20 @@ coverage.xml
 .idea/
 .vscode/
 *.iml
+
+# Live test files (contain credentials / live API calls)
+test_v1_live.py
+test_v2_live.py
+test_flows.py
+
+# Token files
+.token
+.token_v2
+
+# Playwright MCP temp dir
+.playwright-mcp/
+
+# Documentation screenshots
+*.png
+*.jpeg
+*.jpg

@@ -1,38 +1,27 @@
-"""Tasks resource — managing torrent download tasks."""
+"""Tasks resource — managing torrent download tasks and wishlist."""
 
 from __future__ import annotations
 
-import asyncio
-from pathlib import Path
 from typing import Any
 
-import aiohttp
-
-from seedr_api.models.tasks import Task
 from seedr_api.resources._base import BaseResource
 
 
 class TasksResource(BaseResource):
     """Provides methods to manage torrent download tasks in Seedr."""
 
-    async def list(self) -> list[Task]:
+    async def list(self) -> Any:
         """Return all active torrent tasks.
-
-        Required scope: ``tasks.read``
 
         Returns
         -------
-        list[Task]
+        V2TasksResponse or list
             All current tasks.
         """
-        data: Any = await self._http.get("/tasks")
-        tasks: list[Any] = data if isinstance(data, list) else data.get("tasks", [])
-        return [Task.model_validate(t) for t in tasks]
+        return await self._adapter.get_tasks()
 
-    async def get(self, task_id: int) -> Task:
-        """Return details for a single task.
-
-        Required scope: ``tasks.read``
+    async def get(self, task_id: int) -> Any:
+        """Return a single task by ID (V2 only).
 
         Parameters
         ----------
@@ -41,17 +30,17 @@ class TasksResource(BaseResource):
 
         Returns
         -------
-        Task
-            Task details and progress.
+        V2SingleTaskResponse
         """
-        data: Any = await self._http.get(f"/tasks/{task_id}")
-        task = data.get("task", data) if isinstance(data, dict) else data
-        return Task.model_validate(task)
+        return await self._adapter.get_task(task_id)
 
-    async def add_magnet(self, magnet: str, folder_id: int | None = None) -> Task:
+    async def add_magnet(
+        self,
+        magnet: str,
+        *,
+        folder_id: int | None = None,
+    ) -> Any:
         """Add a new task from a magnet link.
-
-        Required scope: ``tasks.write``
 
         Parameters
         ----------
@@ -62,175 +51,82 @@ class TasksResource(BaseResource):
 
         Returns
         -------
-        Task
-            The created task.
+        Task result.
+
+        Raises
+        ------
+        InsufficientSpaceError
+            If there is not enough space; the torrent is auto-added to
+            the wishlist and accessible via ``exc.wishlist_item``.
         """
-        payload: dict[str, Any] = {"magnet": magnet}
-        if folder_id is not None:
-            payload["folder_id"] = folder_id
-        data: Any = await self._http.post("/tasks", data=payload)
-        return Task.model_validate(data)
-
-    async def add_url(self, url: str, folder_id: int | None = None) -> Task:
-        """Add a new task from a direct URL to a torrent.
-
-        Required scope: ``tasks.write``
-
-        Parameters
-        ----------
-        url:
-            Direct download URL pointing to a torrent file.
-        folder_id:
-            Destination folder ID. Defaults to root.
-
-        Returns
-        -------
-        Task
-            The created task.
-        """
-        payload: dict[str, Any] = {"url": url}
-        if folder_id is not None:
-            payload["folder_id"] = folder_id
-        data: Any = await self._http.post("/tasks", data=payload)
-        return Task.model_validate(data)
-
-    async def add_torrent_file(
-        self,
-        file_path: str | Path,
-        folder_id: int | None = None,
-    ) -> Task:
-        """Add a new task by uploading a local ``.torrent`` file.
-
-        Required scope: ``tasks.write``
-
-        Parameters
-        ----------
-        file_path:
-            Local filesystem path to the ``.torrent`` file.
-        folder_id:
-            Destination folder ID. Defaults to root.
-
-        Returns
-        -------
-        Task
-            The created task.
-        """
-        path = Path(file_path)
-        file_bytes = await asyncio.to_thread(path.read_bytes)
-        form = aiohttp.FormData()
-        form.add_field(
-            "file",
-            file_bytes,
-            filename=path.name,
-            content_type="application/x-bittorrent",
+        return await self._adapter.add_task(
+            torrent_magnet=magnet,
+            folder_id=folder_id,
         )
-        if folder_id is not None:
-            form.add_field("folder_id", str(folder_id))
-        data: Any = await self._http.post("/tasks", form_data=form)
-        return Task.model_validate(data)
 
-    async def pause(self, task_id: int) -> None:
-        """Pause an active task.
-
-        Required scope: ``tasks.write``
-
-        Parameters
-        ----------
-        task_id:
-            The numeric task ID.
-        """
-        await self._http.post(f"/tasks/{task_id}/pause")
-
-    async def resume(self, task_id: int) -> None:
-        """Resume a paused task.
-
-        Required scope: ``tasks.write``
+    async def add_from_wishlist(
+        self,
+        wishlist_id: int,
+        *,
+        folder_id: int | None = None,
+    ) -> Any:
+        """Add a task from a wishlist entry.
 
         Parameters
         ----------
-        task_id:
-            The numeric task ID.
-        """
-        await self._http.post(f"/tasks/{task_id}/resume")
-
-    async def delete(self, task_id: int) -> None:
-        """Delete a task (does **not** delete downloaded files).
-
-        Required scope: ``tasks.write``
-
-        Parameters
-        ----------
-        task_id:
-            The numeric task ID.
-        """
-        await self._http.delete(f"/tasks/{task_id}")
-
-    async def get_contents(self, task_id: int) -> dict[str, Any]:
-        """Return the file/folder contents of a completed task.
-
-        Required scope: ``tasks.read``
-
-        Parameters
-        ----------
-        task_id:
-            The numeric task ID.
+        wishlist_id:
+            The numeric wishlist item ID.
+        folder_id:
+            Destination folder ID. Defaults to root.
 
         Returns
         -------
-        dict
-            Raw contents response from the API.
+        Task result.
         """
-        data: Any = await self._http.get(f"/tasks/{task_id}/contents")
-        return data if isinstance(data, dict) else {"contents": data}
+        return await self._adapter.add_task(
+            wishlist_id=wishlist_id,
+            folder_id=folder_id,
+        )
 
-    async def get_progress_url(self, task_id: int) -> str | None:
-        """Return the SSE progress URL for an active task.
+    async def delete(self, task_id: int) -> Any:
+        """Delete a task by ID.
 
-        Required scope: ``tasks.read``
+        Uses DELETE /tasks/{id} on V2 and the V1 torrent-delete endpoint on V1.
 
         Parameters
         ----------
         task_id:
-            The numeric task ID.
+            The numeric task/torrent ID.
+        """
+        return await self._adapter.delete_task(task_id)
+
+    async def delete_torrent(self, torrent_id: int) -> Any:
+        """Delete a torrent task (alias for :meth:`delete`).
+
+        Parameters
+        ----------
+        torrent_id:
+            The numeric torrent task ID.
+        """
+        return await self._adapter.delete_task(torrent_id)
+
+    async def get_torrent_progress(self, progress_url: str) -> Any:
+        """Fetch live download progress for an active torrent (V1 only).
+
+        Parameters
+        ----------
+        progress_url:
+            The ``progress_url`` field from a torrent entry returned by
+            :meth:`list` (e.g. ``tasks[0].progress_url``).
 
         Returns
         -------
-        str or None
-            The SSE progress URL, or ``None`` if unavailable.
+        V1TorrentProgress
+            Download progress including percentage, speed, and ETA.
+
+        Raises
+        ------
+        NotImplementedError
+            When using a V2-only adapter.
         """
-        data: Any = await self._http.get(f"/tasks/{task_id}/progress")
-        if isinstance(data, dict):
-            return data.get("progress_url") or data.get("url")
-        return str(data) if data else None
-
-    async def get_unwanted(self, task_id: int) -> dict[str, Any]:
-        """Return the unwanted-files bitmap for a task.
-
-        Required scope: ``tasks.read``
-
-        Parameters
-        ----------
-        task_id:
-            The numeric task ID.
-
-        Returns
-        -------
-        dict
-            Unwanted file selection data.
-        """
-        data: Any = await self._http.get(f"/tasks/{task_id}/unwanted")
-        return data if isinstance(data, dict) else {"data": data}
-
-    async def set_unwanted(self, task_id: int, bitmap: str) -> None:
-        """Set the unwanted-files bitmap for a task.
-
-        Required scope: ``tasks.write``
-
-        Parameters
-        ----------
-        task_id:
-            The numeric task ID.
-        bitmap:
-            Bitmask string identifying which files to exclude.
-        """
-        await self._http.post(f"/tasks/{task_id}/unwanted", data={"bitmap": bitmap})
+        return await self._adapter.get_torrent_progress(progress_url)

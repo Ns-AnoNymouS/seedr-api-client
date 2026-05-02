@@ -1,4 +1,6 @@
-"""Tests for FilesystemResource."""
+"""Tests for FilesystemResource against the V2 adapter."""
+
+from __future__ import annotations
 
 import pytest
 from aioresponses import aioresponses
@@ -7,27 +9,23 @@ from seedr_api.client import SeedrClient
 from seedr_api.exceptions import NotFoundError
 from tests.conftest import API_BASE
 
-FOLDER_INFO = {"id": 1, "path": "root", "size": 1024}
 FOLDER_CONTENTS = {
-    "id": 1,
-    "path": "root",
+    "id": 167483733,
+    "path": "",
     "size": 2048,
-    "folders": [{"id": 2, "path": "Movies", "size": 512}],
+    "space_max": 5368709120,
+    "space_used": 1073741824,
+    "space_scope": "premium",
+    "saw_walkthrough": 1,
+    "timestamp": "2024-01-01T00:00:00Z",
+    "parent": -1,
+    "folders": [{"id": 2, "path": "Movies", "size": 512, "last_update": "2024-01-01"}],
     "files": [{"id": 10, "name": "readme.txt", "size": 100, "hash": "abc"}],
     "torrents": [],
     "tasks": [],
 }
+
 FILE_INFO = {"id": 10, "name": "readme.txt", "size": 100, "hash": "abc"}
-
-
-async def test_get_root(
-    mock_aioresponses: aioresponses, token_client: SeedrClient
-) -> None:
-    mock_aioresponses.get(f"{API_BASE}/fs/root", payload=FOLDER_INFO)
-    async with token_client:
-        result = await token_client.filesystem.get_root()
-    assert result.id == 1
-    assert result.path == "root"
 
 
 async def test_list_root_contents(
@@ -38,6 +36,7 @@ async def test_list_root_contents(
         result = await token_client.filesystem.list_root_contents()
     assert len(result.folders) == 1
     assert result.folders[0].path == "Movies"
+    assert result.folders[0].name == "Movies"  # property
     assert len(result.files) == 1
     assert result.files[0].name == "readme.txt"
 
@@ -46,7 +45,8 @@ async def test_get_folder(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
     mock_aioresponses.get(
-        f"{API_BASE}/fs/folder/2", payload={"id": 2, "path": "Movies", "size": 512}
+        f"{API_BASE}/fs/folder/2",
+        payload={"id": 2, "path": "Movies", "size": 512},
     )
     async with token_client:
         result = await token_client.filesystem.get_folder(2)
@@ -79,7 +79,9 @@ async def test_get_file_not_found(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
     mock_aioresponses.get(
-        f"{API_BASE}/fs/file/999", status=404, payload={"error": "Not found"}
+        f"{API_BASE}/fs/file/999",
+        status=404,
+        payload={"status_code": 404, "reason_phrase": "File not found"},
     )
     async with token_client:
         with pytest.raises(NotFoundError):
@@ -90,73 +92,78 @@ async def test_create_folder(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
     mock_aioresponses.post(
-        f"{API_BASE}/fs/folder", payload={"id": 5, "path": "New Folder", "size": 0}
+        f"{API_BASE}/fs/folder",
+        payload={"success": True, "id": "5", "path": "New Folder"},
     )
     async with token_client:
         result = await token_client.filesystem.create_folder("New Folder")
     assert result.id == 5
     assert result.path == "New Folder"
+    assert result.name == "New Folder"  # property
+    assert result.success is True
 
 
 async def test_create_folder_with_parent(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
     mock_aioresponses.post(
-        f"{API_BASE}/fs/folder", payload={"id": 6, "path": "Sub", "size": 0}
+        f"{API_BASE}/fs/folder",
+        payload={"success": True, "id": "6", "path": "Sub"},
     )
     async with token_client:
         result = await token_client.filesystem.create_folder("Sub", parent_id=2)
     assert result.id == 6
+    assert result.path == "Sub"
+
+
+async def test_rename_folder_raises_not_implemented(
+    mock_aioresponses: aioresponses, token_client: SeedrClient
+) -> None:
+    async with token_client:
+        with pytest.raises(NotImplementedError):
+            await token_client.filesystem.rename_folder(2, "New Name")
+
+
+async def test_rename_file_raises_not_implemented(
+    mock_aioresponses: aioresponses, token_client: SeedrClient
+) -> None:
+    async with token_client:
+        with pytest.raises(NotImplementedError):
+            await token_client.filesystem.rename_file(10, "new_name.txt")
 
 
 async def test_delete_folder(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
-    mock_aioresponses.delete(
-        f"{API_BASE}/fs/folder/2", payload={"success": True}
+    mock_aioresponses.post(
+        f"{API_BASE}/fs/batch/delete",
+        payload={"success": True},
     )
     async with token_client:
-        await token_client.filesystem.delete_folder(2)
+        result = await token_client.filesystem.delete_folder(2)
+    assert result is not None
 
 
 async def test_delete_file(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
-    mock_aioresponses.delete(
-        f"{API_BASE}/fs/file/10", payload={"success": True}
+    mock_aioresponses.post(
+        f"{API_BASE}/fs/batch/delete",
+        payload={"success": True},
     )
     async with token_client:
-        await token_client.filesystem.delete_file(10)
+        result = await token_client.filesystem.delete_file(10)
+    assert result is not None
 
 
 async def test_batch_delete(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
     mock_aioresponses.post(
-        f"{API_BASE}/fs/batch/delete", payload={"success": True, "errors": []}
+        f"{API_BASE}/fs/batch/delete", payload={"success": True}
     )
     async with token_client:
-        result = await token_client.filesystem.batch_delete([1, 2, 3])
-    assert result.success is True
-
-
-async def test_batch_copy(
-    mock_aioresponses: aioresponses, token_client: SeedrClient
-) -> None:
-    mock_aioresponses.post(
-        f"{API_BASE}/fs/batch/copy", payload={"success": True, "errors": []}
-    )
-    async with token_client:
-        result = await token_client.filesystem.batch_copy([1, 2], destination_folder_id=5)
-    assert result.success is True
-
-
-async def test_batch_move(
-    mock_aioresponses: aioresponses, token_client: SeedrClient
-) -> None:
-    mock_aioresponses.post(
-        f"{API_BASE}/fs/batch/move", payload={"success": True, "errors": []}
-    )
-    async with token_client:
-        result = await token_client.filesystem.batch_move([1, 2], destination_folder_id=5)
-    assert result.success is True
+        result = await token_client.filesystem.batch_delete(
+            [{"type": "folder", "id": 1}, {"type": "folder_file", "id": 2}]
+        )
+    assert result is not None

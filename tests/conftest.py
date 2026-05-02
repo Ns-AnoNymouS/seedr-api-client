@@ -1,5 +1,7 @@
 """Shared pytest fixtures for seedr-api tests."""
 
+from __future__ import annotations
+
 from collections.abc import Generator
 
 import pytest
@@ -7,9 +9,10 @@ from aioresponses import aioresponses
 
 from seedr_api.client import SeedrClient
 
+# The V2 adapter uses this base URL
 API_BASE = "https://v2.seedr.cc/api/v0.1/p"
-DEVICE_CODE_URL = "https://v2.seedr.cc/api/v0.1/p/oauth/device/code"
-DEVICE_TOKEN_URL = "https://v2.seedr.cc/api/v0.1/p/oauth/device/token"
+DEVICE_CODE_URL = f"{API_BASE}/oauth/device/code"
+DEVICE_TOKEN_URL = f"{API_BASE}/oauth/device/token"
 
 
 @pytest.fixture()
@@ -21,11 +24,5 @@ def mock_aioresponses() -> Generator[aioresponses, None, None]:
 
 @pytest.fixture()
 def token_client() -> SeedrClient:
-    """Return a SeedrClient authenticated with a fake OAuth token."""
+    """Return a SeedrClient authenticated with a fake V2 OAuth token."""
     return SeedrClient.from_token("fake-access-token")
-
-
-@pytest.fixture()
-def credentials_client() -> SeedrClient:
-    """Return a SeedrClient authenticated with email/password."""
-    return SeedrClient.from_credentials("user@example.com", "password123")

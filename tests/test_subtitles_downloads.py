@@ -1,5 +1,7 @@
 """Tests for SubtitlesResource and DownloadsResource."""
 
+from __future__ import annotations
+
 from aioresponses import aioresponses
 
 from seedr_api.client import SeedrClient
@@ -15,49 +17,30 @@ async def test_list_subtitles(
 ) -> None:
     mock_aioresponses.get(
         f"{API_BASE}/subtitles/file/10",
-        payload={"subtitles": [{"id": 1, "language": "en", "language_name": "English"}]},
+        payload={
+            "subtitles": [],
+            "file_subtitles": [{"id": 1, "title": "English", "url": "https://sub.srt"}],
+            "folder_file_subtitles": [],
+        },
     )
     async with token_client:
         subs = await token_client.subtitles.list_subtitles(10)
-    assert len(subs) == 1
-    assert subs[0].language == "en"
+    # Returns V2SubtitlesList
+    assert len(subs.file_subtitles) == 1
+    assert subs.file_subtitles[0].title == "English"
 
 
-async def test_list_subtitles_list_response(
+async def test_list_subtitles_empty(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
     mock_aioresponses.get(
         f"{API_BASE}/subtitles/file/10",
-        payload=[{"id": 2, "language": "fr"}],
+        payload={"subtitles": [], "file_subtitles": [], "folder_file_subtitles": []},
     )
     async with token_client:
         subs = await token_client.subtitles.list_subtitles(10)
-    assert subs[0].language == "fr"
-
-
-async def test_search_opensubtitles(
-    mock_aioresponses: aioresponses, token_client: SeedrClient
-) -> None:
-    mock_aioresponses.post(
-        f"{API_BASE}/subtitles/v2/search",
-        payload={"by_query": [{"SubFileName": "Inception.srt", "SubLanguageID": "en", "MovieName": "Inception"}], "by_hash": [], "total_count": 1},
-    )
-    async with token_client:
-        results = await token_client.subtitles.search_opensubtitles(query="Inception")
-    assert len(results) == 1
-    assert results[0].movie_name == "Inception"
-
-
-async def test_link_opensubtitles(
-    mock_aioresponses: aioresponses, token_client: SeedrClient
-) -> None:
-    mock_aioresponses.post(
-        f"{API_BASE}/subtitles/file/10/opensubtitles-v2",
-        payload={"id": 99, "language": "en"},
-    )
-    async with token_client:
-        sub = await token_client.subtitles.link_opensubtitles(10, "sub-123")
-    assert sub.language == "en"
+    assert subs.file_subtitles == []
+    assert subs.subtitles == []
 
 
 # ---------------------------------------------------------------------------
@@ -70,7 +53,7 @@ async def test_get_download_url(
 ) -> None:
     mock_aioresponses.get(
         f"{API_BASE}/download/file/10/url",
-        payload={"url": "https://cdn.seedr.cc/dl/token/file.mkv"},
+        payload={"url": "https://cdn.seedr.cc/dl/token/file.mkv", "name": "file.mkv", "success": True},
     )
     async with token_client:
         url = await token_client.downloads.get_download_url(10)
@@ -89,13 +72,21 @@ async def test_get_file_bytes(
     assert data == b"binary data here"
 
 
-async def test_get_archive_bytes(
+async def test_init_archive(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
-    mock_aioresponses.get(
-        f"{API_BASE}/download/archive/abc123",
-        body=b"PK\x03\x04",
+    mock_aioresponses.put(
+        re.compile(r".*/download/archive/init/.*"),
+        payload={"success": True, "uniq": "abc123", "url": "https://cdn.seedr.cc/archive.zip"},
     )
     async with token_client:
-        data = await token_client.downloads.get_archive_bytes("abc123")
-    assert data[:2] == b"PK"
+        result = await token_client.downloads.init_archive(
+            [{"type": "folder_file", "id": 10}],
+            folder_id=0,
+        )
+    assert result.success is True
+    assert result.uniq == "abc123"
+
+
+# Need to import re for the URL pattern in test_init_archive
+import re  # noqa: E402

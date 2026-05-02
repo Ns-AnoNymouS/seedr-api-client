@@ -1,6 +1,8 @@
-"""Custom exceptions for the seedr-api library."""
+"""Full exception hierarchy for the seedr-api library."""
 
 from __future__ import annotations
+
+from typing import Any
 
 
 class SeedrError(Exception):
@@ -17,6 +19,10 @@ class SeedrError(Exception):
 
 class AuthenticationError(SeedrError):
     """Raised when the request is not authenticated (HTTP 401)."""
+
+
+class TokenExpiredError(AuthenticationError):
+    """Raised when the OAuth access token has expired (before refresh attempt)."""
 
 
 class ForbiddenError(SeedrError):
@@ -40,9 +46,26 @@ class RateLimitError(SeedrError):
         self.retry_after = retry_after
 
 
+class InsufficientSpaceError(SeedrError):
+    """Raised when adding a task fails because the user is out of space (HTTP 413).
+
+    The torrent is automatically added to the wishlist by the API.
+    ``wishlist_item`` contains the raw wishlist entry dict returned by the API.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        status_code: int | None = 413,
+        wishlist_item: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message, status_code)
+        self.wishlist_item = wishlist_item
+
+
 class ServerError(SeedrError):
     """Raised for server-side errors (HTTP 5xx)."""
 
 
 class APIError(SeedrError):
-    """Raised for unexpected HTTP 4xx errors not covered by other exceptions."""
+    """Raised for unexpected HTTP errors not covered by other exceptions."""
