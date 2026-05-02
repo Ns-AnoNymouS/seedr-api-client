@@ -72,6 +72,7 @@ class FileTokenStorage:
 
     async def save(self, token: Token) -> None:
         """Write the token to disk as JSON, creating parent dirs if needed."""
+
         def _write() -> None:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             self._path.write_text(
@@ -83,6 +84,7 @@ class FileTokenStorage:
 
     async def delete(self) -> None:
         """Remove the token file from disk."""
+
         def _remove() -> None:
             try:
                 self._path.unlink()

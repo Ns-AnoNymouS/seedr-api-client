@@ -28,7 +28,9 @@ async def test_list_subtitles(client: SeedrClient) -> None:
 
 
 async def test_search_opensubtitles_by_query(client: SeedrClient) -> None:
-    results = await client.subtitles.search_opensubtitles(query="inception", language="en")
+    results = await client.subtitles.search_opensubtitles(
+        query="inception", language="en"
+    )
     assert isinstance(results, list)
     assert len(results) > 0
     for r in results:

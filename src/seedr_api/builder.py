@@ -160,9 +160,7 @@ class SeedrClientBuilder:
         self._timeout = timeout
         return self
 
-    def with_token_storage(
-        self, storage: TokenStorageProtocol
-    ) -> SeedrClientBuilder:
+    def with_token_storage(self, storage: TokenStorageProtocol) -> SeedrClientBuilder:
         """Set the token storage backend.
 
         Tokens will be persisted after each refresh.

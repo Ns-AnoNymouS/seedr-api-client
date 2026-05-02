@@ -48,7 +48,11 @@ class AutoAdapter:
 
     def _pick(self, v2_available: bool = True) -> V1Adapter | V2Adapter:
         """Return the preferred adapter for a given operation."""
-        if self._v2 is not None and (self._prefer_v2 or self._v1 is None) and v2_available:
+        if (
+            self._v2 is not None
+            and (self._prefer_v2 or self._v1 is None)
+            and v2_available
+        ):
             return self._v2
         if self._v1 is not None:
             return self._v1
@@ -245,13 +249,17 @@ class AutoAdapter:
 
     async def modify_account_name(self, first_name: str, last_name: str) -> Any:
         """Not available in the Seedr API (returns unknown_func)."""
-        raise NotImplementedError("modify_account_name is not supported by the Seedr API.")
+        raise NotImplementedError(
+            "modify_account_name is not supported by the Seedr API."
+        )
 
     async def modify_account_password(
         self, current_password: str, new_password: str
     ) -> Any:
         """Not available in the Seedr API (returns unknown_func)."""
-        raise NotImplementedError("modify_account_password is not supported by the Seedr API.")
+        raise NotImplementedError(
+            "modify_account_password is not supported by the Seedr API."
+        )
 
     # ------------------------------------------------------------------
     # Torrent progress (V1 only, via direct progress_url)
@@ -261,7 +269,9 @@ class AutoAdapter:
         """Fetch live torrent download progress (V1 only)."""
         if self._v1 is not None:
             return await self._v1.get_torrent_progress(progress_url)
-        raise NotImplementedError("get_torrent_progress is only supported via the V1 adapter.")
+        raise NotImplementedError(
+            "get_torrent_progress is only supported via the V1 adapter."
+        )
 
     # ------------------------------------------------------------------
     # Archive creation — not available in V1 API

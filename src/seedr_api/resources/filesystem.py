@@ -56,9 +56,7 @@ class FilesystemResource(BaseResource):
         """
         return await self._adapter.list_contents(folder_id)
 
-    async def create_folder(
-        self, name: str, parent_id: int | None = None
-    ) -> Any:
+    async def create_folder(self, name: str, parent_id: int | None = None) -> Any:
         """Create a new folder.
 
         Parameters
@@ -98,9 +96,7 @@ class FilesystemResource(BaseResource):
         folder_id:
             The numeric ID of the folder to delete.
         """
-        return await self._adapter.delete(
-            [{"type": "folder", "id": folder_id}]
-        )
+        return await self._adapter.delete([{"type": "folder", "id": folder_id}])
 
     # ------------------------------------------------------------------
     # File operations
@@ -128,9 +124,7 @@ class FilesystemResource(BaseResource):
         file_id:
             The numeric ID of the file to delete.
         """
-        return await self._adapter.delete(
-            [{"type": "folder_file", "id": file_id}]
-        )
+        return await self._adapter.delete([{"type": "folder_file", "id": file_id}])
 
     # ------------------------------------------------------------------
     # Batch operations

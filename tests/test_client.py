@@ -97,22 +97,14 @@ def test_builder_with_v1_token() -> None:
 
 
 def test_builder_both_tokens_creates_auto() -> None:
-    client = (
-        SeedrClientBuilder()
-        .with_v1_token("t1")
-        .with_v2_token("t2")
-        .build()
-    )
+    client = SeedrClientBuilder().with_v1_token("t1").with_v2_token("t2").build()
     assert isinstance(client._adapter, AutoAdapter)
 
 
 def test_builder_with_storage() -> None:
     storage = MemoryTokenStorage()
     client = (
-        SeedrClientBuilder()
-        .with_v2_token("tok")
-        .with_token_storage(storage)
-        .build()
+        SeedrClientBuilder().with_v2_token("tok").with_token_storage(storage).build()
     )
     assert isinstance(client._adapter, V2Adapter)
 

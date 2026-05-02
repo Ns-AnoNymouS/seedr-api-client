@@ -92,7 +92,13 @@ class AsyncHTTPClient:
         try:
             body: dict[str, Any] = await response.json(content_type=None)
             message: str = str(
-                body.get("error", body.get("reason_phrase", body.get("message", response.reason or "Unknown error")))
+                body.get(
+                    "error",
+                    body.get(
+                        "reason_phrase",
+                        body.get("message", response.reason or "Unknown error"),
+                    ),
+                )
             )
         except (ValueError, aiohttp.ContentTypeError):
             body = {}

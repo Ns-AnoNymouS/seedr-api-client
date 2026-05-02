@@ -120,4 +120,3 @@ class DownloadsResource(BaseResource):
         """
         archive_id = archive_uuid or str(uuid_module.uuid4())
         return await self._adapter.init_archive(archive_id, folder_id, items)
-

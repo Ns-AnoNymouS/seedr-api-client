@@ -512,16 +512,24 @@ class V2Adapter:
         """Not available in the Seedr API."""
         raise NotImplementedError("create_archive is not supported by the Seedr API.")
 
-    async def modify_account_name(self, first_name: str, last_name: str) -> dict[str, Any]:
+    async def modify_account_name(
+        self, first_name: str, last_name: str
+    ) -> dict[str, Any]:
         """Not available in the Seedr API."""
-        raise NotImplementedError("modify_account_name is not supported by the Seedr API.")
+        raise NotImplementedError(
+            "modify_account_name is not supported by the Seedr API."
+        )
 
     async def modify_account_password(
         self, current_password: str, new_password: str
     ) -> dict[str, Any]:
         """Not available in the Seedr API."""
-        raise NotImplementedError("modify_account_password is not supported by the Seedr API.")
+        raise NotImplementedError(
+            "modify_account_password is not supported by the Seedr API."
+        )
 
     async def get_torrent_progress(self, progress_url: str) -> dict[str, Any]:
         """Not supported in V2 — use the progress_url from torrent_payload directly."""
-        raise NotImplementedError("get_torrent_progress is only supported via the V1 adapter.")
+        raise NotImplementedError(
+            "get_torrent_progress is only supported via the V1 adapter."
+        )

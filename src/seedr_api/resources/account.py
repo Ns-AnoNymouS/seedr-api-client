@@ -64,4 +64,3 @@ class AccountResource(BaseResource):
             Deletion result.
         """
         return await self._adapter.delete_wishlist_item(wishlist_id)
-

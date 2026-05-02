@@ -262,7 +262,9 @@ async def test_token_revocation() -> None:
 
     # Revoke the fresh token (client_id required by Seedr's revocation endpoint)
     async with SeedrClient.from_token(fresh.access_token) as victim:
-        await victim.auth.revoke_token(token=fresh.access_token, client_id=SEEDR_CLIENT_ID)
+        await victim.auth.revoke_token(
+            token=fresh.access_token, client_id=SEEDR_CLIENT_ID
+        )
 
     # Verify the revoked token is now rejected
     async with SeedrClient.from_token(fresh.access_token) as dead:

@@ -24,4 +24,3 @@ class SearchResource(BaseResource):
             Matching files and folders.
         """
         return await self._adapter.search_files(query)
-

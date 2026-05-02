@@ -51,7 +51,9 @@ async def test_search_with_folders(
     mock_aioresponses.get(
         re.compile(r".*/search/fs"),
         payload={
-            "folders": [{"id": 5, "path": "TV Shows", "size": 0, "last_update": "2024-01-01"}],
+            "folders": [
+                {"id": 5, "path": "TV Shows", "size": 0, "last_update": "2024-01-01"}
+            ],
             "files": [],
         },
     )

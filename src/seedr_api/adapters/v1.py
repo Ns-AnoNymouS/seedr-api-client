@@ -36,8 +36,8 @@ _V1_RESOURCE_URL = "https://www.seedr.cc/oauth_test/resource.php"
 _V1_DEVICE_CODE_URL = "https://www.seedr.cc/api/device/code"
 _V1_DEVICE_AUTHORIZE_URL = "https://www.seedr.cc/api/device/authorize"
 
-_CREDENTIAL_CLIENT_ID = "seedr_chrome"   # password login + token refresh
-_DEVICE_CLIENT_ID = "seedr_xbmc"         # device code + device authorize
+_CREDENTIAL_CLIENT_ID = "seedr_chrome"  # password login + token refresh
+_DEVICE_CLIENT_ID = "seedr_xbmc"  # device code + device authorize
 
 
 def _check_v1_error(data: dict[str, Any]) -> None:
@@ -52,7 +52,9 @@ def _check_v1_error(data: dict[str, Any]) -> None:
         raise TokenExpiredError("V1 access token has expired", status_code=401)
     if error in ("access_denied", "invalid_token"):
         # invalid_token: token revoked; access_denied: auth refused
-        raise AuthenticationError(data.get("error_description") or error, status_code=401)
+        raise AuthenticationError(
+            data.get("error_description") or error, status_code=401
+        )
     if error == "unknown_func":
         func = data.get("func", "unknown")
         raise APIError(f"Unknown function: {func}", status_code=404)
@@ -116,7 +118,7 @@ def _raise_for_http_status(status: int, data: dict[str, Any]) -> None:
     )
 
     if status == 401:
-        _check_v1_error(data)          # prefer specific error type from body
+        _check_v1_error(data)  # prefer specific error type from body
         raise AuthenticationError(reason, status_code=401)
     if status == 403:
         raise ForbiddenError(reason, status_code=403)
@@ -190,7 +192,9 @@ class V1Adapter:
             _check_v1_error(data)
             return data
 
-    async def _get_raw(self, url: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def _get_raw(
+        self, url: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """GET a JSON endpoint, raising on HTTP errors."""
         session = self._get_session()
         async with session.get(
@@ -233,12 +237,14 @@ class V1Adapter:
         AuthenticationError
             If credentials are invalid.
         """
-        data = await self._post_token({
-            "grant_type": "password",
-            "client_id": client_id,
-            "username": username,
-            "password": password,
-        })
+        data = await self._post_token(
+            {
+                "grant_type": "password",
+                "client_id": client_id,
+                "username": username,
+                "password": password,
+            }
+        )
         return V1TokenResponse.model_validate(data)
 
     async def refresh_token(
@@ -253,11 +259,13 @@ class V1Adapter:
         AuthenticationError
             If the refresh token is invalid or expired.
         """
-        data = await self._post_token({
-            "grant_type": "refresh_token",
-            "client_id": client_id,
-            "refresh_token": refresh_token,
-        })
+        data = await self._post_token(
+            {
+                "grant_type": "refresh_token",
+                "client_id": client_id,
+                "refresh_token": refresh_token,
+            }
+        )
         return V1RefreshToken.model_validate(data)
 
     async def get_device_code(
@@ -301,7 +309,9 @@ class V1Adapter:
         )
         error = data.get("error")
         if error == "authorization_pending":
-            raise APIError("Authorization pending — user has not yet approved", status_code=202)
+            raise APIError(
+                "Authorization pending — user has not yet approved", status_code=202
+            )
         if error == "slow_down":
             raise APIError("Polling too fast — slow down", status_code=429)
         if error == "expired_token":
@@ -492,7 +502,9 @@ class V1Adapter:
 
     async def get_file_bytes(self, file_id: int) -> bytes:
         """Not supported in V1 — raises NotImplementedError."""
-        raise NotImplementedError("Direct file download is only supported via the V2 API.")
+        raise NotImplementedError(
+            "Direct file download is only supported via the V2 API."
+        )
 
     async def init_archive(
         self,
@@ -569,7 +581,9 @@ class V1Adapter:
         last_name: str,
     ) -> dict[str, Any]:
         """Not available in V1 (func=user_account_modify returns unknown_func)."""
-        raise NotImplementedError("modify_account_name is not supported via the V1 API.")
+        raise NotImplementedError(
+            "modify_account_name is not supported via the V1 API."
+        )
 
     async def modify_account_password(
         self,
@@ -577,7 +591,9 @@ class V1Adapter:
         new_password: str,
     ) -> dict[str, Any]:
         """Not available in V1 (func=user_account_modify returns unknown_func)."""
-        raise NotImplementedError("modify_account_password is not supported via the V1 API.")
+        raise NotImplementedError(
+            "modify_account_password is not supported via the V1 API."
+        )
 
     # ------------------------------------------------------------------
     # Torrent progress

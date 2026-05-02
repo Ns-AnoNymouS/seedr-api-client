@@ -57,9 +57,7 @@ async def test_get_folder(
 async def test_list_folder_contents(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
-    mock_aioresponses.get(
-        f"{API_BASE}/fs/folder/2/contents", payload=FOLDER_CONTENTS
-    )
+    mock_aioresponses.get(f"{API_BASE}/fs/folder/2/contents", payload=FOLDER_CONTENTS)
     async with token_client:
         result = await token_client.filesystem.list_folder_contents(2)
     assert len(result.files) == 1
@@ -159,9 +157,7 @@ async def test_delete_file(
 async def test_batch_delete(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:
-    mock_aioresponses.post(
-        f"{API_BASE}/fs/batch/delete", payload={"success": True}
-    )
+    mock_aioresponses.post(f"{API_BASE}/fs/batch/delete", payload={"success": True})
     async with token_client:
         result = await token_client.filesystem.batch_delete(
             [{"type": "folder", "id": 1}, {"type": "folder_file", "id": 2}]

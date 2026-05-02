@@ -211,9 +211,9 @@ class AuthResource(BaseResource):
                 interval += 5
                 continue
             except APIError as exc:
-                if exc.status_code == 202:   # authorization_pending
+                if exc.status_code == 202:  # authorization_pending
                     continue
-                if exc.status_code == 429:   # slow_down
+                if exc.status_code == 429:  # slow_down
                     interval += 5
                     continue
                 raise

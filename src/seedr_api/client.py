@@ -428,6 +428,7 @@ class SeedrClient:
 # Internal helpers for building refreshing adapters
 # ------------------------------------------------------------------
 
+
 def _make_refreshing_v2_adapter(
     access_token: str,
     *,
