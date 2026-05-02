@@ -53,7 +53,11 @@ async def test_get_download_url(
 ) -> None:
     mock_aioresponses.get(
         f"{API_BASE}/download/file/10/url",
-        payload={"url": "https://cdn.seedr.cc/dl/token/file.mkv", "name": "file.mkv", "success": True},
+        payload={
+            "url": "https://cdn.seedr.cc/dl/token/file.mkv",
+            "name": "file.mkv",
+            "success": True,
+        },
     )
     async with token_client:
         url = await token_client.downloads.get_download_url(10)
@@ -77,7 +81,11 @@ async def test_init_archive(
 ) -> None:
     mock_aioresponses.put(
         re.compile(r".*/download/archive/init/.*"),
-        payload={"success": True, "uniq": "abc123", "url": "https://cdn.seedr.cc/archive.zip"},
+        payload={
+            "success": True,
+            "uniq": "abc123",
+            "url": "https://cdn.seedr.cc/archive.zip",
+        },
     )
     async with token_client:
         result = await token_client.downloads.init_archive(
@@ -86,6 +94,49 @@ async def test_init_archive(
         )
     assert result.success is True
     assert result.uniq == "abc123"
+
+
+async def test_get_download_url_dict_fallback() -> None:
+    """Covers the isinstance(result, dict) branch in get_download_url."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from seedr_api.resources.downloads import DownloadsResource
+
+    adapter = MagicMock()
+    adapter.get_file_url = AsyncMock(
+        return_value={"url": "https://cdn.example.com/file"}
+    )
+    resource = DownloadsResource(adapter)
+    url = await resource.get_download_url(1)
+    assert url == "https://cdn.example.com/file"
+
+
+async def test_get_download_url_str_fallback() -> None:
+    """Covers the str(result) fallback branch in get_download_url."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from seedr_api.resources.downloads import DownloadsResource
+
+    adapter = MagicMock()
+    adapter.get_file_url = AsyncMock(return_value="https://cdn.example.com/file")
+    resource = DownloadsResource(adapter)
+    url = await resource.get_download_url(1)
+    assert url == "https://cdn.example.com/file"
+
+
+async def test_stream_file_not_implemented_for_non_v2() -> None:
+    """Covers the NotImplementedError path in stream_file."""
+    from unittest.mock import MagicMock
+
+    import pytest
+
+    from seedr_api.resources.downloads import DownloadsResource
+
+    adapter = MagicMock()  # not AutoAdapter or V2Adapter
+    resource = DownloadsResource(adapter)
+    with pytest.raises(NotImplementedError, match="V2 adapter"):
+        async with resource.stream_file(1):
+            pass
 
 
 # Need to import re for the URL pattern in test_init_archive

@@ -105,6 +105,15 @@ async def test_delete_wishlist_item(
     assert result is not None
 
 
+async def test_get_devices_v2_only_returns_empty(
+    token_client: SeedrClient,
+) -> None:
+    # V2-only client has no V1 adapter — get_devices always returns []
+    async with token_client:
+        devices = await token_client.account.get_devices()
+    assert devices == []
+
+
 async def test_get_settings_unauthorized(
     mock_aioresponses: aioresponses, token_client: SeedrClient
 ) -> None:

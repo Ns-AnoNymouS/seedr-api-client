@@ -59,7 +59,9 @@ async def test_add_magnet_with_folder_id(
 ) -> None:
     mock_aioresponses.post(f"{API_BASE}/tasks", payload=ADD_TASK_RESPONSE)
     async with token_client:
-        task = await token_client.tasks.add_magnet("magnet:?xt=urn:btih:abc", folder_id=5)
+        task = await token_client.tasks.add_magnet(
+            "magnet:?xt=urn:btih:abc", folder_id=5
+        )
     assert task.user_torrent_id == 42
 
 
@@ -112,3 +114,27 @@ async def test_delete_task(
     async with token_client:
         result = await token_client.tasks.delete(42)
     assert result.success is True
+
+
+async def test_get_task(
+    mock_aioresponses: aioresponses, token_client: SeedrClient
+) -> None:
+    mock_aioresponses.get(
+        f"{API_BASE}/tasks/42",
+        payload={"task": TASK, "success": True},
+    )
+    async with token_client:
+        result = await token_client.tasks.get(42)
+    assert result.task is not None
+    assert result.task.id == 42
+    assert result.task.name == "ubuntu.iso"
+
+
+async def test_get_torrent_progress_not_implemented(
+    token_client: SeedrClient,
+) -> None:
+    import pytest
+
+    async with token_client:
+        with pytest.raises(NotImplementedError):
+            await token_client.tasks.get_torrent_progress("http://progress.url")
