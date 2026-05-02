@@ -446,7 +446,7 @@ def _make_refreshing_v2_adapter(
             super().__init__(*args, **kwargs)
             self._refresh_token_val: list[str | None] = [refresh_token]
 
-        async def _request(self, method: str, path: str, **kwargs: Any) -> Any:  # type: ignore[override]
+        async def _request(self, method: str, path: str, **kwargs: Any) -> Any:
             for attempt in range(2):
                 try:
                     return await super()._request(method, path, **kwargs)

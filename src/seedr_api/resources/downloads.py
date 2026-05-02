@@ -26,10 +26,10 @@ class DownloadsResource(BaseResource):
         str
             A short-lived direct download URL.
         """
-        result = await self._adapter.get_file_url(file_id)
+        result: Any = await self._adapter.get_file_url(file_id)
         # Handle both V1FetchFileResult and V2DownloadURL
         if hasattr(result, "url") and result.url is not None:
-            return result.url
+            return str(result.url)
         if isinstance(result, dict):
             return str(result.get("url", ""))
         return str(result)
@@ -50,7 +50,8 @@ class DownloadsResource(BaseResource):
         bytes
             Raw file content.
         """
-        return await self._adapter.get_file_bytes(file_id)
+        result: bytes = await self._adapter.get_file_bytes(file_id)
+        return result
 
     @asynccontextmanager
     async def stream_file(
